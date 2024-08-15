@@ -54,6 +54,14 @@ input[type="file"] {
   }
 }
 
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center; 
+  margin-top: 20px;
+  gap: 10px
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

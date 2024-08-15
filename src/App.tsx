@@ -49,7 +49,9 @@ const App: React.FC = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+      const image = cld.image(response.data.public_id);
+      image.resize(fill().width(508).height(508));
+      setImage(image);
       generateImages(response.data.public_id);
       setLoading(false);
       setError(''); // Clear any previous error messages
@@ -99,11 +101,13 @@ const App: React.FC = () => {
       </form>
       {loading && <div className="spinner"></div>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {image && !loading && <AdvancedImage cldImg={image} />}
-      <div className="grid-container">
-        {images.map(image => (
-          <AdvancedImage cldImg={image} />
-        ))}
+      <div className="container">
+        {image && !loading && <AdvancedImage cldImg={image} />}
+        <div className="grid-container">
+          {images.map((image: CloudinaryImage) => (
+            <AdvancedImage cldImg={image} />
+          ))}
+        </div>
       </div>
     </div>
   );
