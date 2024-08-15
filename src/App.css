@@ -53,3 +53,15 @@ input[type="file"] {
     transform: rotate(360deg);
   }
 }
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 10px; /* Optional: Adjust the spacing between grid items */
+}
+
+.grid-container img {
+  height: 250px;
+  width: 250px;
+}

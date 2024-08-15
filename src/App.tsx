@@ -3,17 +3,20 @@ import axios from 'axios';
 import './App.css';
 import { AdvancedImage } from '@cloudinary/react';
 import { fill } from '@cloudinary/url-gen/actions/resize';
-import { Cloudinary } from '@cloudinary/url-gen';
+import { Cloudinary, CloudinaryImage } from '@cloudinary/url-gen';
+import { generativeReplace } from '@cloudinary/url-gen/actions/effect';
 
-const App = () => {
-  const [image, setImage] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [shouldSubmit, setShouldSubmit] = useState(false);
+const App: React.FC = () => {
+  const [image, setImage] = useState<any | null>(null);
+  const [images, setImages] = useState<any | null>([]);
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [shouldSubmit, setShouldSubmit] = useState<boolean>(false);
+
   const cld = new Cloudinary({
     cloud: {
-      cloudName: 'fashionista-ai'
-    }
+      cloudName: 'fashionista-ai',
+    },
   });
 
   useEffect(() => {
@@ -22,8 +25,8 @@ const App = () => {
     }
   }, [shouldSubmit, image]);
 
-  const handleImageChange = (e) => {
-    if (e.target.files[0] !== null) {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
       setImage(e.target.files[0]);
       setShouldSubmit(true);
     }
@@ -46,20 +49,44 @@ const App = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      const myImage = cld.image(response.data.public_id); 
-      console.log(myImage);
-      // Resize to 250 x 250 pixels using the 'fill' crop mode.
-      myImage.resize(fill().width(500).height(500));
-      setImage(myImage);
+      
+      generateImages(response.data.public_id);
       setLoading(false);
       setError(''); // Clear any previous error messages
     } catch (error) {
       console.error('Error uploading image:', error);
-      setError('Error uploading image: ' + error.message);
+      setError('Error uploading image: ' + (error as Error).message);
+      setLoading(false);
     } finally {
       setShouldSubmit(false);
+      setLoading(false);
     }
   };
+
+  const generateImages = (publicId: string) => {
+    const genAIImages: CloudinaryImage[] = [];
+    const styles = [
+      { shirt: "suit_jacket", pants: "suit_pants" },
+      { shirt: "sport_shirt", pants: "sport_shorts" },
+      { shirt: "streetwear_shirt", pants: "streetwear_pants" },
+      { shirt: "elegant_tuxedo", pants: "elegant_tuxedo_pants" },
+    ];
+  
+    styles.map((style) => {
+      const image = cld.image(publicId);
+      image.effect(generativeReplace().from("shirt").to(style.shirt));
+      image.effect(generativeReplace().from("pants").to(style.pants));
+      image.resize(fill().width(500).height(500));
+      genAIImages.push(image);
+    });
+
+    setImages(genAIImages);
+  };
+  
+
+  useEffect(() => {
+    console.log('Updated images array:', images); // Log after images state is updated
+  }, [images]);
 
   return (
     <div className="app">
@@ -73,6 +100,11 @@ const App = () => {
       {loading && <div className="spinner"></div>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {image && !loading && <AdvancedImage cldImg={image} />}
+      <div className="grid-container">
+        {images.map(image => (
+          <AdvancedImage cldImg={image} />
+        ))}
+      </div>
     </div>
   );
 };

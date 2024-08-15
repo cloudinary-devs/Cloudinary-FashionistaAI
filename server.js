@@ -32,16 +32,21 @@ app.post('/api/generate', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Image file is required' });
   }
+  console.log('Uploading image', req.file);
 
   const uploadStream = cloudinary.uploader.upload_stream(
-    {resource_type: "image"},
+    {
+        resource_type: "image",
+    },
      async (error, result) => {
       if (error) {
         console.error('Cloudinary error:', error);
         return res.status(500).json({ error: error.message });
       }
+ 
+      
       const resObj = {
-        public_id: result.public_id,
+        ...result
       }
       res.json(resObj);
     }
