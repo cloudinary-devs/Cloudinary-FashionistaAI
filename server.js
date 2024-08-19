@@ -37,6 +37,7 @@ app.post('/api/generate', upload.single('image'), (req, res) => {
   const uploadStream = cloudinary.uploader.upload_stream(
     {
         resource_type: "image",
+        public_id: `image_${Date.now()}`
     },
      async (error, result) => {
       if (error) {
@@ -48,6 +49,7 @@ app.post('/api/generate', upload.single('image'), (req, res) => {
       const resObj = {
         ...result
       }
+      console.log('Image uploaded to Cloudinary:', resObj);
       res.json(resObj);
     }
   );

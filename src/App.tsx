@@ -4,7 +4,7 @@ import './App.css';
 import { AdvancedImage } from '@cloudinary/react';
 import { fill } from '@cloudinary/url-gen/actions/resize';
 import { Cloudinary, CloudinaryImage } from '@cloudinary/url-gen';
-import { generativeReplace } from '@cloudinary/url-gen/actions/effect';
+import { generativeReplace, generativeRecolor, generativeRestore, generativeBackgroundReplace } from '@cloudinary/url-gen/actions/effect';
 
 const App: React.FC = () => {
   const [image, setImage] = useState<any | null>(null);
@@ -12,6 +12,15 @@ const App: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [shouldSubmit, setShouldSubmit] = useState<boolean>(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [color, setColor] = useState('');
+  const [selectedImage, setSelectedImage] = useState(0);
+  const styles = [
+    { shirt: "suit jacket", pants: "suit pants", background: "office", type: "business casual" },
+    { shirt: "sport tshirt", pants: "sport shorts",  background: "gym", type: "sporty" },
+    { shirt: "streetwear shirt", pants: "streetwear pants",  background: "street", type: "streetwear" },
+    { shirt: "elegant tuxedo", pants: "elegant tuxedo pants",  background: "gala", type: "elegant" },
+  ];
 
   const cld = new Cloudinary({
     cloud: {
@@ -33,6 +42,8 @@ const App: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    setImage(null);
+    setImages([]);
     if (!image) {
       alert('Please select an image to upload');
       setShouldSubmit(false);
@@ -67,24 +78,32 @@ const App: React.FC = () => {
 
   const generateImages = (publicId: string) => {
     const genAIImages: CloudinaryImage[] = [];
-    const styles = [
-      { shirt: "suit_jacket", pants: "suit_pants" },
-      { shirt: "sport_shirt", pants: "sport_shorts" },
-      { shirt: "streetwear_shirt", pants: "streetwear_pants" },
-      { shirt: "elegant_tuxedo", pants: "elegant_tuxedo_pants" },
-    ];
   
     styles.map((style) => {
-      const image = cld.image(publicId);
+      const image = cld.image(publicId);   
       image.effect(generativeReplace().from("shirt").to(style.shirt));
       image.effect(generativeReplace().from("pants").to(style.pants));
+      image.effect(generativeBackgroundReplace().prompt(style.background));
+      image.effect(generativeRestore());
       image.resize(fill().width(500).height(500));
       genAIImages.push(image);
     });
 
     setImages(genAIImages);
   };
-  
+
+  const onHandleSelectImage = (index: number) => {
+    setOpenModal(!openModal);
+    setSelectedImage(index);
+  }
+
+  const onHandleChangeItemsColor =() => {
+    const genAIImagesCopy = [...images];
+    console.log(genAIImagesCopy);
+    const tempImage = genAIImagesCopy[selectedImage];
+    tempImage.effect(generativeRecolor(styles[selectedImage].shirt, color));
+    setImages(genAIImagesCopy);
+  }
 
   useEffect(() => {
     console.log('Updated images array:', images); // Log after images state is updated
@@ -104,11 +123,21 @@ const App: React.FC = () => {
       <div className="container">
         {image && !loading && <AdvancedImage cldImg={image} />}
         <div className="grid-container">
-          {images.map((image: CloudinaryImage) => (
-            <AdvancedImage cldImg={image} />
+          {images.map((image: CloudinaryImage, index: number) => (
+            <AdvancedImage cldImg={image} onClick={()=>onHandleSelectImage(index)}/>
           ))}
         </div>
       </div>
+      {openModal && (
+        <div className="modal-overlay">
+        <div className="modal">
+          <span className="close-icon" onClick={()=>setOpenModal(false)}>&times;</span>
+          <h2>Pick A Color</h2>
+          <input type="color" value={color} onChange={(e)=>setColor(e.target.value)}/>
+          <button onClick={onHandleChangeItemsColor}>Change Item Color</button>
+        </div>
+      </div>
+      )}
     </div>
   );
 };
