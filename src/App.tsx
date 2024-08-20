@@ -1,25 +1,31 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import { AdvancedImage } from '@cloudinary/react';
 import { fill } from '@cloudinary/url-gen/actions/resize';
 import { Cloudinary, CloudinaryImage } from '@cloudinary/url-gen';
-import { generativeReplace, generativeRecolor, generativeRestore, generativeBackgroundReplace } from '@cloudinary/url-gen/actions/effect';
+import {
+  generativeReplace,
+  generativeRecolor,
+  generativeRestore,
+  generativeBackgroundReplace,
+} from '@cloudinary/url-gen/actions/effect';
 
 const App: React.FC = () => {
   const [image, setImage] = useState<any | null>(null);
-  const [images, setImages] = useState<any | null>([]);
+  const [images, setImages] = useState<CloudinaryImage[]>([]);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingStatus, setLoadingStatus] = useState<boolean[]>([]); // Track loading status for each image
   const [shouldSubmit, setShouldSubmit] = useState<boolean>(false);
   const [openModal, setOpenModal] = useState(false);
   const [color, setColor] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const styles = [
-    { shirt: "suit jacket", pants: "suit pants", background: "office", type: "business casual" },
-    { shirt: "sport tshirt", pants: "sport shorts",  background: "gym", type: "sporty" },
-    { shirt: "streetwear shirt", pants: "streetwear pants",  background: "street", type: "streetwear" },
-    { shirt: "elegant tuxedo", pants: "elegant tuxedo pants",  background: "gala", type: "elegant" },
+    { shirt: 'suit jacket', pants: 'suit pants', background: 'office', type: 'business casual' },
+    { shirt: 'sport tshirt', pants: 'sport shorts', background: 'gym', type: 'sporty' },
+    { shirt: 'streetwear shirt', pants: 'streetwear pants', background: 'street', type: 'streetwear' },
+    { shirt: 'elegant tuxedo', pants: 'elegant tuxedo pants', background: 'gala', type: 'elegant' },
   ];
 
   const cld = new Cloudinary({
@@ -44,6 +50,7 @@ const App: React.FC = () => {
   const handleSubmit = async () => {
     setImage(null);
     setImages([]);
+    setLoadingStatus([]);
     if (!image) {
       alert('Please select an image to upload');
       setShouldSubmit(false);
@@ -76,34 +83,83 @@ const App: React.FC = () => {
     }
   };
 
+  const handleImageLoading = (image: CloudinaryImage, index: number, attempts = 0) => {
+    const url = image.toURL();
+    const img = new Image();
+    img.src = url;
+
+    img.onload = () => {
+      setLoadingStatus((prev) => {
+        const newStatus = [...prev];
+        newStatus[index] = false; // Image has finished loading
+        return newStatus;
+      });
+    };
+
+    img.onerror = async () => {
+      console.error(`Error loading image at index ${index}, Attempt ${attempts + 1}`);
+
+      // Check if 423 status was returned (this requires you to use a proxy server or inspect headers)
+      const response = await fetch(url);
+      if (response.status === 423) {
+        console.log(`423 error received. Retrying image load in 5 seconds... (Attempt ${attempts + 1})`);
+        setTimeout(() => handleImageLoading(image, index, attempts + 1), 5000);
+      } else {
+        console.error('Max retries reached or non-423 error. Image failed to load.');
+        setError('Error loading image. Max retries reached.');
+        setLoadingStatus((prev) => {
+          const newStatus = [...prev];
+          newStatus[index] = false; // Stop spinner even if loading fails
+          return newStatus;
+        });
+      }
+    };
+  };
+
   const generateImages = (publicId: string) => {
     const genAIImages: CloudinaryImage[] = [];
-  
-    styles.map((style) => {
-      const image = cld.image(publicId);   
-      image.effect(generativeReplace().from("shirt").to(style.shirt));
-      image.effect(generativeReplace().from("pants").to(style.pants));
+    const newLoadingStatus: boolean[] = [];
+
+    styles.forEach((style, index) => {
+      const image = cld.image(publicId);
+      image.effect(generativeReplace().from('shirt').to(style.shirt));
+      image.effect(generativeReplace().from('pants').to(style.pants));
       image.effect(generativeBackgroundReplace().prompt(style.background));
       image.effect(generativeRestore());
       image.resize(fill().width(500).height(500));
       genAIImages.push(image);
+      newLoadingStatus.push(true); // Set initial loading status
+      handleImageLoading(image, index); // Start loading image
     });
 
     setImages(genAIImages);
+    setLoadingStatus(newLoadingStatus);
   };
 
   const onHandleSelectImage = (index: number) => {
     setOpenModal(!openModal);
     setSelectedImage(index);
-  }
+  };
 
-  const onHandleChangeItemsColor =() => {
+  const onHandleChangeItemsColor = () => {
     const genAIImagesCopy = [...images];
-    console.log(genAIImagesCopy);
     const tempImage = genAIImagesCopy[selectedImage];
+
+    // Show spinner and hide modal
+    setLoadingStatus((prev) => {
+      const newStatus = [...prev];
+      newStatus[selectedImage] = true; // Set loading to true for the selected image
+      return newStatus;
+    });
+    setOpenModal(false); // Close the modal
+
+    // Change color
     tempImage.effect(generativeRecolor(styles[selectedImage].shirt, color));
+
+    // Once done, update state and hide spinner
     setImages(genAIImagesCopy);
-  }
+    handleImageLoading(tempImage, selectedImage); // Trigger reloading of the image
+  };
 
   useEffect(() => {
     console.log('Updated images array:', images); // Log after images state is updated
@@ -124,19 +180,27 @@ const App: React.FC = () => {
         {image && !loading && <AdvancedImage cldImg={image} />}
         <div className="grid-container">
           {images.map((image: CloudinaryImage, index: number) => (
-            <AdvancedImage cldImg={image} onClick={()=>onHandleSelectImage(index)}/>
+            <div key={index}>
+              {loadingStatus[index] ? (
+                <div className="spinner"></div>
+              ) : (
+                <AdvancedImage cldImg={image} onClick={() => onHandleSelectImage(index)} />
+              )}
+            </div>
           ))}
         </div>
       </div>
       {openModal && (
         <div className="modal-overlay">
-        <div className="modal">
-          <span className="close-icon" onClick={()=>setOpenModal(false)}>&times;</span>
-          <h2>Pick A Color</h2>
-          <input type="color" value={color} onChange={(e)=>setColor(e.target.value)}/>
-          <button onClick={onHandleChangeItemsColor}>Change Item Color</button>
+          <div className="modal">
+            <span className="close-icon" onClick={() => setOpenModal(false)}>
+              &times;
+            </span>
+            <h2>Pick A Color</h2>
+            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            {color && <button onClick={onHandleChangeItemsColor}>Change Item Color</button>}
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
