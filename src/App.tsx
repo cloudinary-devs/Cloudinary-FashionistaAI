@@ -22,10 +22,10 @@ const App: React.FC = () => {
   const [color, setColor] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const styles = [
-    { shirt: 'suit jacket', pants: 'suit pants', background: 'office', type: 'business casual' },
-    { shirt: 'sport tshirt', pants: 'sport shorts', background: 'gym', type: 'sporty' },
-    { shirt: 'streetwear shirt', pants: 'streetwear pants', background: 'street', type: 'streetwear' },
-    { shirt: 'elegant tuxedo', pants: 'elegant tuxedo pants', background: 'gala', type: 'elegant' },
+    { shirt: 'suit jacket for upper body', pants: 'suit pants for lower body', background: 'office', type: 'business casual' },
+    { shirt: 'sport tshirt for upper body', pants: 'sport shorts for lower body', background: 'gym', type: 'sporty' },
+    { shirt: 'streetwear shirt for upper body', pants: 'streetwear pants for lower body', background: 'street', type: 'streetwear' },
+    { shirt: 'elegant tuxedo for upper body', pants: 'elegant tuxedo pants for lower body', background: 'gala', type: 'elegant' },
   ];
 
   const cld = new Cloudinary({
