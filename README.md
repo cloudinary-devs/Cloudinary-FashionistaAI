@@ -21,12 +21,7 @@
 
 FashionistaAI is a stylish web application that leverages Cloudinary's GenAI technologies to help you transform your fashion sense. Upload an image of an outfit, and FashionistaAI will generate four distinct styles based on that image: Business Casual, Sporty, Streetwear, and Elegant. Perfect for anyone looking to experiment with different looks or seeking inspiration for their next outfit!
 
-## Features
-
-- **Image Upload**: Upload an image of your outfit to the app.
-- **Style Generation**: Automatically generate four unique styles—Business Casual, Sporty, Streetwear, and Elegant—based on your uploaded image.
-- **React Frontend**: A sleek and responsive user interface built with React.
-- **Node.js Backend**: A powerful backend that handles image processing and style generation using Cloudinary's GenAI technologies.
+## Cloudinary GenAI features
 
 Generative Replacement: Has the method `generativeReplace()` that detect and replace one object with another inside of an image.
 
