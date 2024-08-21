@@ -12,6 +12,7 @@ import {
 } from '@cloudinary/url-gen/actions/effect';
 
 const App: React.FC = () => {
+  type StyleKeys = 'top' | 'bottom' | 'background' | 'type';
   const [image, setImage] = useState<any | null>(null);
   const [images, setImages] = useState<CloudinaryImage[]>([]);
   const [error, setError] = useState<string>('');
@@ -20,12 +21,13 @@ const App: React.FC = () => {
   const [shouldSubmit, setShouldSubmit] = useState<boolean>(false);
   const [openModal, setOpenModal] = useState(false);
   const [color, setColor] = useState('');
+  const [selectedItem, setSelectedItem] = useState<StyleKeys>('top');
   const [selectedImage, setSelectedImage] = useState(0);
   const styles = [
-    { shirt: 'suit jacket for upper body', pants: 'suit pants for lower body', background: 'office', type: 'business casual' },
-    { shirt: 'sport tshirt for upper body', pants: 'sport shorts for lower body', background: 'gym', type: 'sporty' },
-    { shirt: 'streetwear shirt for upper body', pants: 'streetwear pants for lower body', background: 'street', type: 'streetwear' },
-    { shirt: 'elegant tuxedo for upper body', pants: 'elegant tuxedo pants for lower body', background: 'gala', type: 'elegant' },
+    { top: 'suit jacket for upper body', bottom: 'suit pants for lower body', background: 'office', type: 'business casual' },
+    { top: 'sport tshirt for upper body', bottom: 'sport shorts for lower body', background: 'gym', type: 'sporty' },
+    { top: 'streetwear shirt for upper body', bottom: 'streetwear pants for lower body', background: 'street', type: 'streetwear' },
+    { top: 'elegant tuxedo for upper body', bottom: 'elegant tuxedo pants for lower body', background: 'gala', type: 'elegant' },
   ];
 
   const cld = new Cloudinary({
@@ -122,8 +124,8 @@ const App: React.FC = () => {
 
     styles.forEach((style, index) => {
       const image = cld.image(publicId);
-      image.effect(generativeReplace().from('shirt').to(style.shirt));
-      image.effect(generativeReplace().from('pants').to(style.pants));
+      image.effect(generativeReplace().from('shirt').to(style.top));
+      image.effect(generativeReplace().from('pants').to(style.bottom));
       image.effect(generativeBackgroundReplace().prompt(style.background));
       image.effect(generativeRestore());
       image.resize(fill().width(500).height(500));
@@ -154,7 +156,7 @@ const App: React.FC = () => {
     setOpenModal(false); // Close the modal
 
     // Change color
-    tempImage.effect(generativeRecolor(styles[selectedImage].shirt, color));
+    tempImage.effect(generativeRecolor(styles[selectedImage][selectedItem], color));
 
     // Once done, update state and hide spinner
     setImages(genAIImagesCopy);
@@ -196,7 +198,25 @@ const App: React.FC = () => {
             <span className="close-icon" onClick={() => setOpenModal(false)}>
               &times;
             </span>
-            <h2>Pick A Color</h2>
+            <h2>Pick an Item to Change The Color</h2>
+            <label>
+        <input
+          type="radio"
+          value="top"
+          checked={selectedItem === 'top'}
+          onChange={(e)=>setSelectedItem(e.target.value as StyleKeys)}
+        />
+        Top
+      </label>
+      <label>
+        <input
+          type="radio"
+          value="bottom"
+          checked={selectedItem === 'bottom'}
+          onChange={(e)=>setSelectedItem(e.target.value as StyleKeys)}
+        />
+        Bottom
+      </label>
             <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
             {color && <button onClick={onHandleChangeItemsColor}>Change Item Color</button>}
           </div>
