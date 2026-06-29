@@ -21,12 +21,12 @@ describe('preloadImage', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('retries on HTTP 423 and eventually resolves', async () => {
+  it.each([420, 423, 429])('retries on HTTP %i and eventually resolves', async (status) => {
     vi.useFakeTimers();
 
     const fetchFn = vi
       .fn()
-      .mockResolvedValueOnce({ status: 423 })
+      .mockResolvedValueOnce({ status })
       .mockResolvedValueOnce({ status: 200 });
 
     let loadAttempt = 0;
@@ -56,6 +56,54 @@ describe('preloadImage', () => {
 
     await vi.advanceTimersByTimeAsync(1000);
     await expect(promise).resolves.toBeUndefined();
+
+    vi.useRealTimers();
+  });
+
+  it('appends cache-busting parameter on retry attempts', async () => {
+    vi.useFakeTimers();
+
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 420 })
+      .mockResolvedValueOnce({ status: 200 });
+
+    const srcs: string[] = [];
+    let loadAttempt = 0;
+    const createImage = vi.fn(() => {
+      loadAttempt += 1;
+      const img = {
+        src: '',
+        set onload(handler: (() => void) | null) {
+          if (loadAttempt > 1 && handler) {
+            handler();
+          }
+        },
+        set onerror(handler: (() => void) | null) {
+          if (loadAttempt === 1 && handler) {
+            handler();
+          }
+        },
+      } as unknown as HTMLImageElement;
+      return new Proxy(img, {
+        set(target, prop, value) {
+          if (prop === 'src') srcs.push(value as string);
+          return Reflect.set(target, prop, value);
+        },
+      }) as unknown as HTMLImageElement;
+    });
+
+    const promise = preloadImage('https://example.com/image.jpg', {
+      fetchFn,
+      createImage,
+      retryDelayMs: 1000,
+    });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(promise).resolves.toBeUndefined();
+
+    expect(srcs[0]).toBe('https://example.com/image.jpg');
+    expect(srcs[1]).toBe('https://example.com/image.jpg?_retry=1');
 
     vi.useRealTimers();
   });

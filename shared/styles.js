@@ -1,25 +1,25 @@
 export const STYLES = [
   {
-    top: 'suit jacket for upper body',
-    bottom: 'suit pants for lower body',
+    top: 'suit_jacket',
+    bottom: 'suit_pants',
     background: 'office',
     type: 'business casual',
   },
   {
-    top: 'sport tshirt for upper body',
-    bottom: 'sport shorts for lower body',
+    top: 'sport_tshirt',
+    bottom: 'sport_shorts',
     background: 'gym',
     type: 'sporty',
   },
   {
-    top: 'streetwear shirt for upper body',
-    bottom: 'streetwear pants for lower body',
+    top: 'streetwear_shirt',
+    bottom: 'streetwear_pants',
     background: 'street',
     type: 'streetwear',
   },
   {
-    top: 'elegant tuxedo for upper body',
-    bottom: 'elegant tuxedo pants for lower body',
+    top: 'elegant_tuxedo',
+    bottom: 'elegant_tuxedo_pants',
     background: 'gala',
     type: 'elegant',
   },

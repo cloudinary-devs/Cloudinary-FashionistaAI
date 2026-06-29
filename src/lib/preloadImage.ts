@@ -31,18 +31,23 @@ export function preloadImage(
     onRetry,
   } = options;
 
+  const RETRYABLE_STATUSES = new Set([420, 423, 429]);
+
   return new Promise((resolve, reject) => {
     const attemptLoad = (attempt: number) => {
       const img = createImage();
-      img.src = url;
+      const cacheBustUrl = attempt > 0
+        ? `${url}${url.includes('?') ? '&' : '?'}_retry=${attempt}`
+        : url;
+      img.src = cacheBustUrl;
 
       img.onload = () => resolve();
 
       img.onerror = async () => {
         try {
-          const response = await fetchFn(url);
+          const response = await fetchFn(cacheBustUrl);
 
-          if (response.status === 423 && attempt < maxRetries) {
+          if (RETRYABLE_STATUSES.has(response.status) && attempt < maxRetries) {
             onRetry?.(attempt + 1);
             setTimeout(() => attemptLoad(attempt + 1), retryDelayMs);
             return;
