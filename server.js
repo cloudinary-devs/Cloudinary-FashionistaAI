@@ -1,21 +1,19 @@
-/* eslint-disable no-undef */
 import 'dotenv/config.js';
 import express from 'express';
 import cors from 'cors';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import streamifier from 'streamifier';
-import path from 'path'
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import {
+  buildAllEagerTransformations,
+  sanitizeUploadResponse,
+  validateUpload,
+} from './server/upload.js';
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Configure Cloudinary with secure URLs and credentials
 cloudinary.config({
   secure: true,
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -23,44 +21,43 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configure multer for file upload
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
-// Define a POST endpoint to handle image upload
 app.post('/api/generate', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Image file is required' });
+  const validationError = validateUpload(req.file);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
   }
-  console.log('Uploading image', req.file);
 
   const uploadStream = cloudinary.uploader.upload_stream(
     {
-        resource_type: "image",
-        public_id: `image_${Date.now()}`
+      resource_type: 'image',
+      public_id: `image_${Date.now()}`,
+      eager: buildAllEagerTransformations(),
+      eager_async: true,
     },
-     async (error, result) => {
+    (error, result) => {
       if (error) {
         console.error('Cloudinary error:', error);
         return res.status(500).json({ error: error.message });
       }
- 
-      
-      const resObj = {
-        ...result
-      }
-      console.log('Image uploaded to Cloudinary:', resObj);
-      res.json(resObj);
-    }
+
+      res.json(sanitizeUploadResponse(result));
+    },
   );
 
   streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
-app.use(express.static(path.resolve(__dirname, "public")));
-
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
